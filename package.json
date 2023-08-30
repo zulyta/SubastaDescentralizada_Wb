@@ -1,0 +1,21 @@
+{
+  "name": "subastadescentralizada_wb",
+  "version": "1.0.0",
+  "description": "El blockchain abrió la puerta a la economía del token. En esta nueva economía, el dinero es programado en código y ejecutado en el blockchain. Los usuarios tienen la capacidad de crear sus propios tipo de moneda o dinero digital usando contratos inteligentes. Ello trajo consigo que através del tiempo se estandaricen los activos digitales en al menos dos grupos: tokens fungibles y tokens no fungibles.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@openzeppelin/contracts": "^4.9.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
+    "chai": "^4.3.8"
+  }
+}

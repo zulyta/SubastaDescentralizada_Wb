@@ -26,7 +26,7 @@ El estándar ERC-20 establece varias funciones clave que deben estar presentes e
 
 **Getters**
 
-Funciones de Lectura (no modifican el estado de la cadena de bloques):
+
 
 - `balanceOf(address _owner)`: Devuelve el saldo de tokens de un usuario específico.
 - `totalSupply()`: Devuelve la cantidad total de tokens en circulación.
@@ -37,7 +37,7 @@ Funciones de Lectura (no modifican el estado de la cadena de bloques):
 
 **Setters**
 
-Funciones de Escritura (modifican el estado de la cadena de bloques)
+
 
 - `mint(address _to, uint256 _value)`: Permite la creación o generación de nuevos tokens a favor de una cuenta específica.
 - `burn(uint256 _value)`:Permite quemar (eliminar) tokens, lo que puede generar deflación en la economía.
@@ -78,30 +78,26 @@ El estándar ERC-721 establece varias funciones clave que deben estar presentes 
 
 Cada uno tiene responsabilidades específicas en el proceso de subasta. 
 
-**ERC721_MarketNFT**
+**Contrato ERC721:**
 
-Este contrato actúa como el mercado principal para las obras de arte en forma de tokens no fungibles (NFTs). 
+Actúa como el mercado principal de tokens no fungibles (NFT).
 
-***Funciones***
+- Facilita la creación y el registro de nuevos NFT cuando los propietarios cargan NFT u otros activos únicos.
+- Permite la transferencia de los NFT al ganador de la subasta una vez que esta culmina.
+- Mantiene un registro de las subastas en curso y los NFT asociados a ellas.
 
-- Crear y registrar nuevos tokens no fungibles (NFTs) cuando los propietarios suben obras de arte a la plataforma.
-- Crear subastas asociadas con los NFTs registrados. 
-- Gestionar la creación y finalización de subastas.
-- Facilitar la transferencia de NFTs al ganador de la subasta una vez que esta finaliza.
-- Mantener un registro de las subastas activas y sus respectivos tokens NFTs.
+**Contrato ERC20:**
 
-**ERC20_Subastas** 
+Controla y gestiona todo el proceso de las subastas 
 
-Este contrato se encarga de gestionar las subastas individuales. 
+- Crea subastas vinculadas a los NFT registrados en el contrato ERC721.
+- Supervisa el inicio y la finalización de las subastas.
+- Acepta ofertas de los participantes en forma de tokens fungibles (ERC20).
+- Extiende automáticamente la duración de la subasta si se realizan ofertas más altas en los últimos 5 minutos.
+- Permite a los postores no ganadores recuperar sus ofertas después de que la subasta finaliza.
+- Emite eventos para notificar cambios y actualizaciones relacionados con las subastas.
 
-***Funciones***
-
-- Recibir ofertas de los participantes en la subasta utilizando tokens fungibles (FTs).
-- Mantener el seguimiento de las ofertas actuales y el participante que realizó la oferta más alta.
-- Extender el tiempo de la subasta si se realizan ofertas cercanas a su finalización.
-- Permitir a los participantes no ganadores recuperar sus ofertas.
-- Facilitar la transferencia del NFT subastado al ganador una vez que la subasta finaliza.
-- Emitir eventos para informar sobre los cambios en la subasta.
+La interacción entre estos dos contratos se basa en la creación de subastas enlazadas a los NFT registrados en el contrato ERC721. Posteriormente, el contrato ERC20 asume la responsabilidad de administrar las subastas individuales, incluyendo la recepción de ofertas, el seguimiento de la subasta, la extensión temporal y la transferencia del NFT al ganador.
 
 ## Implementación
 
