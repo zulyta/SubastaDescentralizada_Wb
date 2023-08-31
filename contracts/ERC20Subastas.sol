@@ -5,12 +5,12 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ERC721Market.sol";
 
-contract MiContratoERC20 is ERC20, Ownable {
-     MiContratoERC721 private nftContract;
+contract ERC20Subastas is ERC20, Ownable {
+     ERC721Market private nftContract;
     address private ownerMarketplace;
 
     constructor(address _nftContractAddress, address _ownerMarketplace) ERC20("NombreDelToken", "SimboloDelToken") {
-        nftContract = MiContratoERC721(_nftContractAddress);
+        nftContract = ERC721Market(_nftContractAddress);
         ownerMarketplace = _ownerMarketplace;
     }
 
