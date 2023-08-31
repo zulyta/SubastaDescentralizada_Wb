@@ -6,7 +6,7 @@ El blockchain abrió la puerta a la economía del token. En esta nueva economía
 
 ## Estándares de token
 
-Son tres los estándares de token más conocidos y usados: `ERC20`, `ERC721` y `ERC1155`.
+Son tres los estándares de token más conocidos y usados: `ERC20`, `ERC721` .
 
 
 
