@@ -6,10 +6,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ERC721Market.sol";
 
 contract MiContratoERC20 is ERC20, Ownable {
-    MiContratoERC721 private nftContract;
+     MiContratoERC721 private nftContract;
+    address private ownerMarketplace;
 
-    constructor(address _nftContractAddress) ERC20("NombreDelToken", "SimboloDelToken") {
+    constructor(address _nftContractAddress, address _ownerMarketplace) ERC20("NombreDelToken", "SimboloDelToken") {
         nftContract = MiContratoERC721(_nftContractAddress);
+        ownerMarketplace = _ownerMarketplace;
     }
 
     struct Subasta {
@@ -29,9 +31,7 @@ contract MiContratoERC20 is ERC20, Ownable {
         require(_precioInicial > 0, "El precio inicial debe ser mayor a 0");
         require(_horaInicio < _horaFin, "La hora de inicio debe ser antes de la hora de finalizacion");
 
-        nftContract.approveTransfer(address(nftContract), _tokenId); // Asegura el permiso para transferir el NFT
-
-        nftContract.transferir(address(nftContract), _tokenId);
+        nftContract.approveTransfer(address(ownerMarketplace), _tokenId); // Asegura el permiso para transferir el NFT
 
         subastas.push(Subasta({
             creador: msg.sender,
