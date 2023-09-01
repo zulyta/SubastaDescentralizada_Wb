@@ -7,7 +7,7 @@ import "./ERC721Market.sol";
 
 contract EnglishAuctionNFT is Ownable {
     ERC20 public token;  // El contrato utiliza tokens ERC20 para las ofertas.
-    ERC721Market public nftContract; // Agrega una referencia al contrato ERC721Market
+    ERC721Market public nftContract; // Referencia al contrato ERC721Market
 
     constructor(address _tokenAddress, address _nftContractAddress) {
         token = ERC20(_tokenAddress);
