@@ -3,69 +3,132 @@ pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./ERC721Market.sol";
+import "./ERC721Market.sol"; 
 
-contract ERC20Subastas is ERC20, Ownable {
-     ERC721Market private nftContract;
-    address private ownerMarketplace;
+contract EnglishAuctionNFT is Ownable {
+    ERC20 public token;  // El contrato utiliza tokens ERC20 para las ofertas.
+    ERC721Market public nftContract; // Agrega una referencia al contrato ERC721Market
 
-    constructor(address _nftContractAddress, address _ownerMarketplace) ERC20("NombreDelToken", "SimboloDelToken") {
-        nftContract = ERC721Market(_nftContractAddress);
-        ownerMarketplace = _ownerMarketplace;
+    constructor(address _tokenAddress, address _nftContractAddress) {
+        token = ERC20(_tokenAddress);
+        nftContract = ERC721Market(_nftContractAddress); // Asigna la dirección del contrato ERC721Market
     }
 
-    struct Subasta {
-        address creador;
+    struct Auction {
+        address creadorNFT;
         uint256 tokenId;
-        uint256 precioInicial;
-        uint256 horaInicio;
-        uint256 horaFin;
-        uint256 ofertaMasAlta;
-        address ganador;
+        uint256 startTime;
+        uint256 endTime;
+        address highestBidder;
+        uint256 highestBid;
+        bool finalizada;
+        mapping(address => uint256) ofertas;
     }
 
-    Subasta[] public subastas;
-    event SubastaFinalizada(uint256 indexed idSubasta, address ganador, uint256 monto);
+    mapping(bytes32 => Auction) public subastas;
+    mapping(bytes32 => uint256) public auctionIndex;
 
-    function iniciarSubasta(uint256 _tokenId, uint256 _precioInicial, uint256 _horaInicio, uint256 _horaFin) external {
-        require(_precioInicial > 0, "El precio inicial debe ser mayor a 0");
-        require(_horaInicio < _horaFin, "La hora de inicio debe ser antes de la hora de finalizacion");
 
-        nftContract.approveTransfer(address(ownerMarketplace), _tokenId); // Asegura el permiso para transferir el NFT
+    bytes32[] public subastasActivas;
+    bytes32[] public subastasPasadas;
 
-        subastas.push(Subasta({
-            creador: msg.sender,
-            tokenId: _tokenId,
-            precioInicial: _precioInicial,
-            horaInicio: _horaInicio,
-            horaFin: _horaFin,
-            ofertaMasAlta: 0,
-            ganador: address(0)
-        }));
+    event SubastaCreada(bytes32 indexed _idSubasta, address indexed _creador);
+    event OfertaRealizada(bytes32 indexed _idSubasta, address indexed _postor, uint256 _oferta);
+    event SubastaFinalizada(bytes32 indexed _idSubasta, address indexed _ganador, uint256 _oferta);
+
+    function crearSubasta(uint256 _idToken, uint256 _horaInicio, uint256 _horaFin) external {
+        require(_horaFin > _horaInicio, "Parametros de tiempo invalidos");
+
+        // Obtiene el creador del NFT
+        address creadorNFT = nftContract.getNftCreator(_idToken);
+
+        // Verifica que el creador del NFT sea el que crea la subasta
+        require(msg.sender == creadorNFT, "Solo el creador del NFT puede crear subastas");
+
+        bytes32 idSubasta = _crearIdSubasta(_idToken, _horaInicio, _horaFin);
+        Auction storage subasta = subastas[idSubasta];
+        subasta.creadorNFT = msg.sender;
+        subasta.tokenId = _idToken;
+        subasta.startTime = _horaInicio;
+        subasta.endTime = _horaFin;
+        subastasActivas.push(idSubasta);
+        emit SubastaCreada(idSubasta, msg.sender);
     }
 
-    function ofertar(uint256 _idSubasta, uint256 _oferta) external {
-        Subasta storage subasta = subastas[_idSubasta];
-        require(block.timestamp >= subasta.horaInicio, "La subasta aun no ha comenzado");
-        require(block.timestamp <= subasta.horaFin, "La subasta ha finalizado");
-        require(_oferta > subasta.ofertaMasAlta, "La oferta debe ser mayor a la oferta actual");
-
-        if (subasta.ofertaMasAlta > 0) {
-            _transfer(msg.sender, subasta.ganador, subasta.ofertaMasAlta);
+    function realizarOferta(bytes32 _idSubasta, uint256 _montoOferta) external {
+        Auction storage subasta = subastas[_idSubasta];
+        require(!subasta.finalizada, "Subasta ya finalizada");
+        require(block.timestamp >= subasta.startTime && block.timestamp <= subasta.endTime, "Subasta no activa");
+        require(_montoOferta > subasta.highestBid, "La oferta debe ser mayor que la oferta actual mas alta");
+        require(token.transferFrom(msg.sender, address(this), _montoOferta), "Fallo al transferir tokens");
+        
+        if (subasta.highestBidder != address(0)) {
+            token.transfer(subasta.highestBidder, subasta.highestBid);
         }
 
-        subasta.ofertaMasAlta = _oferta;
-        subasta.ganador = msg.sender;
+        subasta.highestBidder = msg.sender;
+        subasta.highestBid = _montoOferta;
+        subasta.ofertas[msg.sender] = _montoOferta;
+
+        emit OfertaRealizada(_idSubasta, msg.sender, _montoOferta);
     }
 
-    function finalizarSubasta(uint256 _idSubasta) external {
-        Subasta storage subasta = subastas[_idSubasta];
-        require(block.timestamp > subasta.horaFin, "La subasta aun no ha finalizado");
-        require(subasta.ganador != address(0), "La subasta no tiene ganador");
+    function eliminarSubasta(bytes32 _idSubasta) internal {
+        uint256 indiceEliminar = auctionIndex[_idSubasta];
+        require(indiceEliminar < subastasActivas.length, "Subasta no encontrada en subastas activas");
 
-        nftContract.transferir(subasta.ganador, subasta.tokenId); // Transfiere el NFT al ganador
-        _transfer(subasta.ganador, subasta.creador, subasta.ofertaMasAlta);
+        if (indiceEliminar < subastasActivas.length - 1) {
+            // Reorganiza el arreglo para eliminar el elemento
+            subastasActivas[indiceEliminar] = subastasActivas[subastasActivas.length - 1];
+            // Actualiza la posición en el mapeo para el elemento movido
+            auctionIndex[subastasActivas[indiceEliminar]] = indiceEliminar;
+        }
 
-        emit SubastaFinalizada(_idSubasta, subasta.ganador, subasta.ofertaMasAlta);
+        // Elimina la referencia en el mapeo
+        delete auctionIndex[_idSubasta];
+    }
+
+    function finalizarSubasta(bytes32 _idSubasta) external onlyOwner {
+        Auction storage subasta = subastas[_idSubasta];
+        require(!subasta.finalizada, "Subasta ya finalizada");
+        require(block.timestamp > subasta.endTime, "Subasta aun no finalizada");
+
+        subasta.finalizada = true; // Marca la subasta como finalizada en lugar de eliminarla
+
+        subastasPasadas.push(_idSubasta);
+
+        if (subasta.highestBidder != address(0)) {
+            token.transfer(subasta.creadorNFT, subasta.highestBid);
+            emit SubastaFinalizada(_idSubasta, subasta.highestBidder, subasta.highestBid);
+        }
+    }
+
+    function retirarOferta(bytes32 _idSubasta) external {
+        Auction storage subasta = subastas[_idSubasta];
+        require(!subasta.finalizada, "Subasta ya finalizada");
+        require(subasta.ofertas[msg.sender] > 0, "No hay oferta para retirar");
+        require(subasta.startTime > block.timestamp, "No se puede retirar despues de que inicie la subasta");
+        
+        uint256 cantidad = subasta.ofertas[msg.sender];
+        subasta.ofertas[msg.sender] = 0;
+        require(token.transfer(msg.sender, cantidad), "Fallo al transferir tokens");
+
+        emit OfertaRealizada(_idSubasta, msg.sender, 0); // Emite una oferta con monto 0 para señalar la retirada de la oferta
+    }
+
+    function obtenerSubastasActivas() external view returns (bytes32[] memory) {
+        return subastasActivas;
+    }
+
+    function obtenerSubastasPasadas() external view returns (bytes32[] memory) {
+        return subastasPasadas;
+    }
+
+    function _crearIdSubasta(
+        uint256 _idToken,
+        uint256 _horaInicio,
+        uint256 _horaFin
+    ) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked(_idToken, _horaInicio, _horaFin, block.timestamp));
     }
 }
